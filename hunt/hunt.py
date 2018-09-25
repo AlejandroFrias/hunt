@@ -249,7 +249,7 @@ class Task(object):
     @property
     def estimate_display(self):
         estimate_display_str = ""
-        if self.estimate:
+        if self.estimate is not None:
             estimate_display_str = "%d hr" % self.estimate
             if self.estimate > 1:
                 estimate_display_str += "s"

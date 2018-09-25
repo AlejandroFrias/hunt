@@ -268,7 +268,7 @@ class Command:
         task = hunt.get_task(task.id)
         puts("{task} estimated to take {estimate}".format(
                 task=colored.green(task_name),
-                estimat=colored.yellow(task.estimate_display)
+                estimate=colored.yellow(task.estimate_display)
             ), stream=stream)
 
     def edit(self, options, stream):

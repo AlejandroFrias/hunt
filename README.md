@@ -27,20 +27,11 @@ make setup
 ## ~/.gitconfig
 
 [alias]
-  b = branch
-  s = status
-  st = stash
-  d = diff
-  a = add
-  co = commit
-  f = fetch
-  p = pull
-  bhist = ! git reflog | egrep -io 'moving from ([^[:space:]]+)' | awk '{ print  }' | head
-  ch = ! git checkout $1 && hunt --silent workon --create
-  chb = ! git checkout -b $1 && read -er -p 'Estimate '$1' (hrs): ' estimate && hunt --silent workon --create --estimate ${estimate:-0}
-  chm = ! git checkout master && hunt --silent stop
-  bd = ! git branch -d $1 && hunt --silent finish
-  bdd = ! git branch -D $1 && hunt --silent finish
+    ch = ! git checkout $1 && hash hunt 2>/dev/null && hunt --silent workon --create
+    chb = ! git checkout -b $1 && hash hunt 2>/dev/null && read -er -p 'Estimate '$1' (hrs): ' estimate && hunt --silent workon --create --estimate ${estimate:-0}
+    chm = ! git checkout master && hash hunt 2>/dev/null && hunt --silent stop
+    bd = ! git branch -d $1 && hash hunt 2>/dev/null && hunt --silent finish
+    bdd = ! git branch -D $1 && hash hunt 2>/dev/null && hunt --silent finish
 ```
 
 My workflow:

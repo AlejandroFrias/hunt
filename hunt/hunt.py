@@ -35,34 +35,40 @@ class Hunt:
 
     def get_task(self, task_identifier, statuses=None):
         if isinstance(task_identifier, int) or task_identifier.isdigit():
-            where_clause = 'id=?'
-            order_by = 'last_modified DESC'
+            where_clause = "id=?"
+            order_by = "last_modified DESC"
             params = [task_identifier]
+        elif task_identifier == "$CURRENT":
+            where_clause = None
+            order_by = "last_modified DESC"
+            params = []
         elif task_identifier:
-            where_clause = 'name LIKE ?'
-            order_by = 'last_modified DESC'
-            params = [task_identifier + '%']
+            where_clause = "name LIKE ?"
+            order_by = "last_modified DESC"
+            params = [task_identifier + "%"]
         else:
             raise AssertionError("No task identifier given.")
 
         if statuses:
-            where_clause += (
-                ' AND status IN (' + ','.join(len(statuses) * '?') + ')')
+            if where_clause:
+                where_clause += " AND status IN (" + ",".join(len(statuses) * "?") + ")"
+            else:
+                where_clause = "status IN (" + ",".join(len(statuses) * "?") + ")"
+
             params.extend(statuses)
 
-        tasks = self.select_from_task(
-            where_clause=where_clause,
-            order_by=order_by,
-            params=params)
+        tasks = self.select_from_task(where_clause=where_clause, order_by=order_by, params=params)
 
         if len(tasks) == 0:
             raise HuntCouldNotFindTaskError(
-                "Could not find task for identifier: " +
-                colored.yellow(task_identifier))
+                "Could not find task for identifier: " + colored.yellow(task_identifier)
+            )
         elif len(tasks) > 1:
+            if task_identifier == "$CURRENT":
+                return tasks[0]
             raise HuntFoundMultipleTasksError(
-                "Found multiple tasks for identifier: " +
-                colored.yellow(task_identifier))
+                "Found multiple tasks for identifier: " + colored.yellow(task_identifier)
+            )
 
         return tasks[0]
 

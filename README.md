@@ -21,34 +21,42 @@ cd hunt
 make setup
 ```
 
-## My git integration
+## My git/hunt workflow
  
 ```
 ## ~/.gitconfig
 
 [alias]
-    ch = ! git checkout $1 && hash hunt 2>/dev/null && hunt --silent workon --create
+    s = "!git status && hash hunt 2>/dev/null && if [ \"$(git rev-parse --abbrev-ref HEAD)\" = \"master\" ]; then hunt --silent stop; else hunt --silent workon $(git rev-parse --abbrev-ref HEAD); fi"
     chb = ! git checkout -b $1 && hash hunt 2>/dev/null && read -er -p 'Estimate '$1' (hrs): ' estimate && hunt --silent workon --create --estimate ${estimate:-0}
+    ch = "!git checkout $1 && hash hunt 2>/dev/null && if [ \"$(git rev-parse --abbrev-ref HEAD)\" = \"master\" ]; then hunt --silent stop; else hunt --silent workon --create $(git rev-parse --abbrev-ref HEAD); fi && echo 1>/dev/null"
     chm = ! git checkout master && hash hunt 2>/dev/null && hunt --silent stop
+    pushc = ! git push --set-upstream origin $(git rev-parse --abbrev-ref HEAD) && hash hunt 2>/dev/null && hunt --silent stop 
     bd = ! git branch -d $1 && hash hunt 2>/dev/null && hunt --silent finish
     bdd = ! git branch -D $1 && hash hunt 2>/dev/null && hunt --silent finish
+
 ```
 
-My workflow:
+`g s` checks the git status and starts work on the current branch.
 
-Use `git chb <branch>` to create new branch and start working on a task created by the same name automatically.
+`git chb <branch>` creates a new branch and creates a new task with the branch name.
 This will prompt to you to enter an estimate (default to 0).
 
-`git ch <branch>` will switch to tracking time in that branch (and create the task if not created yet).
+`git ch <branch>` will start working on a task named after the current branch.
+Swithcing to master, however, will stop working on the current task.
 
-Passing the `--create` option means that if the task doesn't already exist it'll be created.
+`git chm` switches to master and stops work on the current task.
 
-Passing the `--silent` option prevents any intrusive standard output.
+`git pushc` pushes your changes and stops work on the task.
 
-Checking out master using `git chm` will stop time tracking altogether.
+`git bd` and `git bdd` are used to delete the branch and finish the task.
 
-Deleting the branch finishes the task.
+Checking out the branch or checking the status of the branch is often how I start my work sessions, so I have hunt start working on the ticket with current branch name.
 
-You can use `hunt estimate` or `hunt edit` to make a new time estimate or edit your start and stop times at any time.
+I end my work session by either checking out master or pushing my changes, so I stop working on the current task whenever I do that.
 
-You can us `hunt ls` and it's various options to list out your tasks.
+Deleting my branches is what I do after I've merged to master, so I finish my tasks as part of branch deletion.
+
+I use `hunt edit` to fix tasks, like editing the start/stop times or updating an estimate or even adding a description to the task.
+
+I use `hunt ls` to check my unfinished tasks.

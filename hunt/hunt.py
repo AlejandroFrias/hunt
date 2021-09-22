@@ -1,4 +1,3 @@
-import settings
 import sqlite3
 import time
 from datetime import datetime
@@ -7,19 +6,20 @@ from functools import total_ordering
 
 from clint.textui import colored
 
-from hunt.constants import CURRENT
-from hunt.constants import FINISHED
-from hunt.constants import HISTORY_TABLE
-from hunt.constants import HuntAlreadyWorkingOnTaskError
-from hunt.constants import HuntCouldNotFindTaskError
-from hunt.constants import HuntFoundMultipleTasksError
-from hunt.constants import HuntNoCurrentTaskError
-from hunt.constants import IN_PROGRESS
-from hunt.constants import STATUSES
-from hunt.constants import TASKS_TABLE
-from hunt.constants import TODO
-from hunt.utils import calc_progress
-from hunt.utils import display_time
+from hunt import settings
+from .constants import CURRENT
+from .constants import FINISHED
+from .constants import HISTORY_TABLE
+from .constants import HuntAlreadyWorkingOnTaskError
+from .constants import HuntCouldNotFindTaskError
+from .constants import HuntFoundMultipleTasksError
+from .constants import HuntNoCurrentTaskError
+from .constants import IN_PROGRESS
+from .constants import STATUSES
+from .constants import TASKS_TABLE
+from .constants import TODO
+from .utils import calc_progress
+from .utils import display_time
 
 
 def now():

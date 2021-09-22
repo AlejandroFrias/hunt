@@ -8,11 +8,11 @@ import time
 
 from clint.textui import colored
 
-from hunt.constants import CURRENT
-from hunt.constants import FINISHED
-from hunt.constants import HuntTaskValidationError
-from hunt.constants import IN_PROGRESS
-from hunt.constants import TODO
+from .constants import CURRENT
+from .constants import FINISHED
+from .constants import HuntTaskValidationError
+from .constants import IN_PROGRESS
+from .constants import TODO
 
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 

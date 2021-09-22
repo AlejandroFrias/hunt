@@ -1,4 +1,3 @@
-import settings
 import sys
 import tempfile
 from collections import defaultdict
@@ -12,19 +11,20 @@ from clint.textui import puts_err
 from clint.textui.prompt import yn
 from tabulate import tabulate
 
-from hunt.cli_dispatcher import Dispatcher
-from hunt.constants import CURRENT
-from hunt.constants import FINISHED
-from hunt.constants import HuntError
-from hunt.constants import HuntCouldNotFindTaskError
-from hunt.constants import IN_PROGRESS
-from hunt.constants import STATUSES
-from hunt.constants import TODO
-from hunt.hunt import History
-from hunt.hunt import Hunt
-from hunt.utils import calc_progress
-from hunt.utils import display_progress
-from hunt.utils import parse_task
+from hunt import settings
+from .cli_dispatcher import Dispatcher
+from .constants import CURRENT
+from .constants import FINISHED
+from .constants import HuntError
+from .constants import HuntCouldNotFindTaskError
+from .constants import IN_PROGRESS
+from .constants import STATUSES
+from .constants import TODO
+from .hunt import History
+from .hunt import Hunt
+from .utils import calc_progress
+from .utils import display_progress
+from .utils import parse_task
 
 
 class Command:

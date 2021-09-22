@@ -1,11 +1,11 @@
 import os
-import settings
 import shutil
 import sqlite3
 import tempfile
 from unittest import TestCase
 
-from hunt import Hunt
+from hunt import settings
+from .hunt import Hunt
 
 
 class TestHunt(TestCase):

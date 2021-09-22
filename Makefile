@@ -7,7 +7,7 @@ help:
 .PHONY: setup
 setup: clean
 	mkdir ~/.hunt
-	python3 setup_database.py
+	python3 hunt/setup_database.py
 
 .PHONY: install
 install: setup
@@ -30,4 +30,4 @@ lint:
 
 .PHONY: db
 db:
-	@sqlite3 $(shell python -c "import settings; print(settings.DATABASE)")
+	@sqlite3 $(shell python -c "from hunt import settings; print(settings.DATABASE)")

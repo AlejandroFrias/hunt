@@ -5,10 +5,7 @@ from subprocess import call
 from contextlib import redirect_stdout
 from io import StringIO
 
-from clint.textui import colored
-from clint.textui import puts
-from clint.textui import puts_err
-from clint.textui.prompt import yn
+from rich.console import Console
 from tabulate import tabulate
 
 from hunt import settings
@@ -53,7 +50,7 @@ class Command:
     """
 
     # flake8: noqa
-    def ls(self, options, stream):
+    def ls(self, options, console):
         """
         List tasks.
 
@@ -130,15 +127,15 @@ class Command:
         ).split("\n")
 
         for rowid in current_rows:
-            table_rows[rowid + 2] = colored.green(table_rows[rowid + 2])
+            table_rows[rowid + 2] = "[green]" + table_rows[rowid + 2] + "[/green]"
 
         for rowid in in_progress_rows:
-            table_rows[rowid + 2] = colored.yellow(table_rows[rowid + 2])
+            table_rows[rowid + 2] = "[yellow]" + table_rows[rowid + 2] + "[/yellow]"
 
         for row in table_rows:
-            puts(row, stream=stream)
+            console.print(row)
 
-    def show(self, options, stream):
+    def show(self, options, console):
         """
         Display task.
 
@@ -150,9 +147,9 @@ class Command:
             task = hunt.get_task(options["<task-identifier>"])
         else:
             task = hunt.get_current_task()
-        puts(hunt.display_task(task.id), stream=stream)
+        console.print(hunt.display_task(task.id))
 
-    def create(self, options, stream):
+    def create(self, options, console):
         """
         Create a new task.
 
@@ -169,9 +166,9 @@ class Command:
             estimate=options["--estimate"],
             description=options["--description"],
         )
-        self.ls({"--starts-with": task.name}, stream=stream)
+        self.ls({"--starts-with": task.name}, console=console)
 
-    def workon(self, options, stream):
+    def workon(self, options, console):
         """
         Start/continue working on an unfinished task.
 
@@ -206,9 +203,9 @@ class Command:
             )
 
         hunt.workon_task(task.id)
-        self.ls({"--open": True}, stream=stream)
+        self.ls({"--open": True}, console=console)
 
-    def restart(self, options, stream):
+    def restart(self, options, console):
         """
         Restart a finished task (progress will continue from before).
 
@@ -219,9 +216,9 @@ class Command:
         task = hunt.get_task(options["<task-identifier>"], statuses=[FINISHED])
         if task:
             hunt.workon_task(task.id)
-        self.ls({"--open": True}, stream=stream)
+        self.ls({"--open": True}, console=console)
 
-    def stop(self, options, stream):
+    def stop(self, options, console):
         """
         Stop working on current task.
 
@@ -230,9 +227,9 @@ class Command:
         """
         hunt = Hunt()
         hunt.stop_current_task()
-        self.ls({"--open": True}, stream=stream)
+        self.ls({"--open": True}, console=console)
 
-    def finish(self, options, stream):
+    def finish(self, options, console):
         """
         Finish a task (defaults to finish current task).
 
@@ -247,9 +244,9 @@ class Command:
             task = hunt.stop_current_task()
 
         hunt.finish_task(task.id)
-        puts("Finished " + colored.yellow(task.name) + "!", stream=stream)
+        console.print("Finished [yellow]{task.name}[/yellow]!")
 
-    def estimate(self, options, stream):
+    def estimate(self, options, console):
         """
         Estimate how long a task will take.
 
@@ -271,14 +268,11 @@ class Command:
         task_name = task.name
         hunt.estimate_task(taskid, estimate)
         task = hunt.get_task(task.id)
-        puts(
-            "{task} estimated to take {estimate}".format(
-                task=colored.green(task_name), estimate=colored.yellow(task.estimate_display)
-            ),
-            stream=stream,
+        console.print(
+            f"[green]{task_name}[/green] estimated to take [yellow]{task.estimate_display}[/yellow]"
         )
 
-    def edit(self, options, stream):
+    def edit(self, options, console):
         """
         Edit a task. Use with caution.
 
@@ -292,9 +286,8 @@ class Command:
             task = hunt.get_current_task()
 
         if not task:
-            puts(
-                "Could not find task '" + (options["<task-identifier>"] or "Current") + "'",
-                stream=stream,
+            console.print(
+                "Could not find task '" + (options["<task-identifier>"] or "Current") + "'"
             )
             return
 
@@ -316,9 +309,9 @@ class Command:
         for is_start, history_time in task_dict["history"]:
             hunt.insert_history(History((None, new_task.id, is_start, history_time)))
 
-        self.ls({"--starts-with": new_task.name, "--all": True}, stream=stream)
+        self.ls({"--starts-with": new_task.name, "--all": True}, console=console)
 
-    def rm(self, options, stream):
+    def rm(self, options, console):
         """
         Remove/delete a task.
 
@@ -334,14 +327,14 @@ class Command:
         if options["--force"]:
             user_unsure = False
         else:
-            prompt = "Are you sure you want to remove " + colored.red(task.name) + "!?"
-            user_unsure = yn(prompt, default="n")
+            prompt = f"Are you sure you want to remove [red]{task.name}[/red]!? [yN]"
+            user_unsure = input(prompt).lower() == "n"
 
         if user_unsure:
-            puts("Didn't remove " + colored.yellow(task.name) + ".", stream=stream)
+            console.print(f"Didn't remove [yellow]{task.name}[/yellow].")
         else:
             hunt.remove_task(task.id)
-            puts("Removed " + colored.red(task.name) + "!", stream=stream)
+            console.print(f"Removed [red]{task.name}[/red]!")
 
 
 def main():
@@ -349,14 +342,16 @@ def main():
 
     options, handler, command_options = dispatcher.parse(sys.argv[1:])
 
+    if command_options["--silent"]:
+        console=Console(file=StringIO())
+    else:
+        console=Console()
+
     try:
-        if command_options["--silent"]:
-            handler(options, stream=StringIO)
-        else:
-            handler(options, stream=sys.stdout.write)
+        handler(options, console=console)
     except KeyboardInterrupt:
         sys.exit(1)
     except HuntError as hunt_error:
         if not command_options["--silent"]:
-            puts_err(str(hunt_error))
+            console.print(str(hunt_error))
         sys.exit(hunt_error.exit_status)

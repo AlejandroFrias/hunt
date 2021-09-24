@@ -34,7 +34,7 @@ setup(
         ],
     },
     install_requires=[
-        'clint',
+        'rich',
         'docopt',
         'tabulate',
         'parsimonious',

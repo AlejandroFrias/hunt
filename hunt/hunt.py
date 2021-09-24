@@ -4,8 +4,6 @@ from datetime import datetime
 from contextlib import contextmanager
 from functools import total_ordering
 
-from clint.textui import colored
-
 from hunt import settings
 from .constants import CURRENT
 from .constants import FINISHED
@@ -61,13 +59,13 @@ class Hunt:
 
         if len(tasks) == 0:
             raise HuntCouldNotFindTaskError(
-                "Could not find task for identifier: " + colored.yellow(task_identifier)
+                f"Could not find task for identifier: [yellow]{task_identifier}[/yellow]"
             )
         elif len(tasks) > 1:
             if task_identifier == "$CURRENT":
                 return tasks[0]
             raise HuntFoundMultipleTasksError(
-                "Found multiple tasks for identifier: " + colored.yellow(task_identifier)
+                f"Found multiple tasks for identifier: [yellow]{task_identifier}[/yellow]"
             )
 
         return tasks[0]
@@ -153,7 +151,9 @@ class Hunt:
         current_task = self.get_current_task(required=False)
         if current_task:
             if current_task.id == task.id:
-                raise HuntAlreadyWorkingOnTaskError("Already working on " + colored.yellow(task.name))
+                raise HuntAlreadyWorkingOnTaskError(
+                    f"Already working on [yellow]{task.name}[/yellow]"
+                )
             self.insert_history(History((None, current_task.id, False, now())))
             self.update_task(current_task.id, "status", IN_PROGRESS)
         self.insert_history(History((None, task.id, True, now())))

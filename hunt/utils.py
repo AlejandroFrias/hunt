@@ -6,8 +6,6 @@ from time import strptime
 import calendar
 import time
 
-from clint.textui import colored
-
 from .constants import CURRENT
 from .constants import FINISHED
 from .constants import HuntTaskValidationError
@@ -126,7 +124,7 @@ def parse_task(task_display):
 
 def hunt_assert(expr, message):
     if not expr:
-        error_message = colored.red("Task Validation Error: ") + message
+        error_message = f"[red]Task Validation Error:[/red] {message}"
         raise HuntTaskValidationError(error_message)
 
 

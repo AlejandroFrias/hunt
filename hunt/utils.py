@@ -1,3 +1,5 @@
+import os
+
 from parsimonious import Grammar
 from parsimonious import NodeVisitor
 from time import gmtime
@@ -6,6 +8,7 @@ from time import strptime
 import calendar
 import time
 
+from hunt import settings
 from .constants import CURRENT
 from .constants import FINISHED
 from .constants import HuntTaskValidationError
@@ -186,3 +189,6 @@ def display_progress(seconds):
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
     return "{0:02d}:{1:02d}:{2:02d}".format(hours, minutes, seconds)
+
+def needs_init():
+    return not os.path.exists(settings.HUNT_DIR) or not os.path.exists(settings.DATABASE)

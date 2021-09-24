@@ -29,3 +29,6 @@ class HuntFoundMultipleTasksError(HuntError):
 
 class HuntTaskValidationError(HuntError):
     exit_status = 6
+
+class HuntNotInitializedError(HuntError):
+    exit_status = 7

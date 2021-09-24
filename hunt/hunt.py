@@ -12,11 +12,13 @@ from .constants import HuntAlreadyWorkingOnTaskError
 from .constants import HuntCouldNotFindTaskError
 from .constants import HuntFoundMultipleTasksError
 from .constants import HuntNoCurrentTaskError
+from .constants import HuntNotInitializedError
 from .constants import IN_PROGRESS
 from .constants import STATUSES
 from .constants import TASKS_TABLE
 from .constants import TODO
 from .utils import calc_progress
+from .utils import needs_init
 from .utils import display_time
 
 
@@ -26,6 +28,10 @@ def now():
 
 class Hunt:
     def __init__(self, database=None):
+        if not database and needs_init():
+            raise HuntNotInitializedError(
+                "[red]Error[/red]: Run [bold]hunt init[/bold] to initiliaze hunt database"
+            )
         if database:
             self.database = database
         else:
@@ -75,17 +81,15 @@ class Hunt:
         task_history = self.get_history(taskid)
 
         lines = []
-        lines.append('NAME: %s' % task.name)
-        lines.append('ESTIMATE: %s' % task.estimate)
-        lines.append('STATUS: %s' % task.status)
-        lines.append('DESCRIPTION: %s' % task.description)
-        lines.append('')
-        lines.append('HISTORY')
+        lines.append("NAME: %s" % task.name)
+        lines.append("ESTIMATE: %s" % task.estimate)
+        lines.append("STATUS: %s" % task.status)
+        lines.append("DESCRIPTION: %s" % task.description)
+        lines.append("")
+        lines.append("HISTORY")
         for history_record in task_history:
-            record_type = 'Start' if history_record.is_start else 'Stop'
-            lines.append(record_type +
-                         '\t' +
-                         history_record.get_time_display())
+            record_type = "Start" if history_record.is_start else "Stop"
+            lines.append(record_type + "\t" + history_record.get_time_display())
         return "\n".join(lines)
 
     def create_task(self, name, estimate=None, description=None):
@@ -96,37 +100,31 @@ class Hunt:
     def get_tasks(self, statuses=None, starts_with=None, contains=None):
         where_clause_param_tuples = []
         if starts_with:
-            where_clause_param_tuples.append(
-                ('name LIKE ?', (starts_with + '%',)))
+            where_clause_param_tuples.append(("name LIKE ?", (starts_with + "%",)))
         if contains:
-            where_clause_param_tuples.append(
-                ('name LIKE ?', ('%' + contains + '%',)))
+            where_clause_param_tuples.append(("name LIKE ?", ("%" + contains + "%",)))
         if statuses:
             where_clause_param_tuples.append(
-                ('status IN (' + ','.join(len(statuses) * '?') + ')',
-                 statuses))
+                ("status IN (" + ",".join(len(statuses) * "?") + ")", statuses)
+            )
         if where_clause_param_tuples:
             where_clauses, where_params = zip(*where_clause_param_tuples)
-            where_clause = ' AND '.join(where_clauses)
+            where_clause = " AND ".join(where_clauses)
             params = [param for params in where_params for param in params]
         else:
             where_clause = None
             params = None
 
-        tasks = self.select_from_task(
-            where_clause=where_clause,
-            params=params)
+        tasks = self.select_from_task(where_clause=where_clause, params=params)
         return sorted(tasks)
 
     def get_history(self, taskids):
         if isinstance(taskids, int):
             taskids = [taskids]
-        assert(all(map(lambda taskid: isinstance(taskid, int), taskids)))
+        assert all(map(lambda taskid: isinstance(taskid, int), taskids))
 
-        where_clause = 'taskid IN (' + ','.join(len(taskids) * '?') + ')'
-        history = self.select_from_history(
-            where_clause=where_clause,
-            params=taskids)
+        where_clause = "taskid IN (" + ",".join(len(taskids) * "?") + ")"
+        history = self.select_from_history(where_clause=where_clause, params=taskids)
         return sorted(history)
 
     def get_progress(self, taskid):
@@ -134,8 +132,7 @@ class Hunt:
         return calc_progress(history)
 
     def get_current_task(self, required=True):
-        current_tasks = self.select_from_task(
-            where_clause='status IN (?)', params=(CURRENT,))
+        current_tasks = self.select_from_task(where_clause="status IN (?)", params=(CURRENT,))
         if len(current_tasks) == 0:
             if required:
                 raise HuntNoCurrentTaskError("No current tasks.")
@@ -162,7 +159,7 @@ class Hunt:
     def stop_current_task(self):
         current_task = self.get_current_task()
         self.insert_history(History((None, current_task.id, False, now())))
-        self.update_task(current_task.id, 'status', IN_PROGRESS)
+        self.update_task(current_task.id, "status", IN_PROGRESS)
         return self.get_task(current_task.id)
 
     def finish_task(self, taskid):
@@ -172,36 +169,30 @@ class Hunt:
         self.update_task(taskid, "estimate", estimate)
 
     def remove_task(self, taskid):
-        delete_task_sql = 'DELETE from {table} WHERE id=?'.format(
-            table=TASKS_TABLE)
-        delete_history_sql = 'DELETE from {table} WHERE taskid=?'.format(
-            table=HISTORY_TABLE)
+        delete_task_sql = "DELETE from {table} WHERE id=?".format(table=TASKS_TABLE)
+        delete_history_sql = "DELETE from {table} WHERE taskid=?".format(table=HISTORY_TABLE)
         self.execute(delete_task_sql, (taskid,))
         self.execute(delete_history_sql, (taskid,))
 
     def update_task(self, taskid, field, value):
-        sql = ('UPDATE {table} SET {field}=?, last_modified=? '
-               'WHERE id=?').format(
-            table=TASKS_TABLE, field=field)
+        sql = ("UPDATE {table} SET {field}=?, last_modified=? " "WHERE id=?").format(
+            table=TASKS_TABLE, field=field
+        )
         self.execute(sql, (value, now(), taskid))
 
     def select_from_task(self, where_clause=None, order_by=None, params=None):
-        return self.select_from_table(
-            TASKS_TABLE, where_clause, order_by, params)
+        return self.select_from_table(TASKS_TABLE, where_clause, order_by, params)
 
-    def select_from_history(
-            self, where_clause=None, order_by=None, params=None):
-        return self.select_from_table(
-            HISTORY_TABLE, where_clause, order_by, params)
+    def select_from_history(self, where_clause=None, order_by=None, params=None):
+        return self.select_from_table(HISTORY_TABLE, where_clause, order_by, params)
 
-    def select_from_table(
-            self, table, where_clause=None, order_by=None, params=None):
-        assert(table in (TASKS_TABLE, HISTORY_TABLE))
-        sql = 'SELECT * FROM {table}'.format(table=table)
+    def select_from_table(self, table, where_clause=None, order_by=None, params=None):
+        assert table in (TASKS_TABLE, HISTORY_TABLE)
+        sql = "SELECT * FROM {table}".format(table=table)
         if where_clause:
-            sql += ' WHERE ' + where_clause
+            sql += " WHERE " + where_clause
         if order_by:
-            sql += ' ORDER BY ' + order_by
+            sql += " ORDER BY " + order_by
         if table == TASKS_TABLE:
             record_type = Task
         elif table == HISTORY_TABLE:
@@ -212,15 +203,18 @@ class Hunt:
 
     def insert_task(self, task):
         sql = (
-            'INSERT INTO {table} '
-            '(name,estimate,description,status,last_modified) '
-            'VALUES (?,?,?,?,?)').format(table=TASKS_TABLE)
-        self.execute(sql, (task.name, task.estimate, task.description,
-                           task.status, task.last_modified))
+            "INSERT INTO {table} "
+            "(name,estimate,description,status,last_modified) "
+            "VALUES (?,?,?,?,?)"
+        ).format(table=TASKS_TABLE)
+        self.execute(
+            sql, (task.name, task.estimate, task.description, task.status, task.last_modified)
+        )
 
     def insert_history(self, history):
-        sql = ('INSERT INTO {table} (taskid,is_start,time) VALUES '
-               '(?,?,?)').format(table=HISTORY_TABLE)
+        sql = ("INSERT INTO {table} (taskid,is_start,time) VALUES " "(?,?,?)").format(
+            table=HISTORY_TABLE
+        )
         self.execute(sql, (history.taskid, history.is_start, history.time))
 
     def execute(self, sql, sql_params=None):
@@ -263,14 +257,17 @@ class Task(object):
 
     def __str__(self):
         return "{name} ({status}): {desc}".format(
-            name=self.name, status=self.status, desc=self.description)
+            name=self.name, status=self.status, desc=self.description
+        )
 
     def __repr__(self):
         return str(self)
 
     def __lt__(self, other):
-        return ((STATUSES.index(self.status), -self.last_modified) <
-                (STATUSES.index(other.status), -other.last_modified))
+        return (STATUSES.index(self.status), -self.last_modified) < (
+            STATUSES.index(other.status),
+            -other.last_modified,
+        )
 
     def __eq__(self, other):
         return self.id == other.id
@@ -294,14 +291,18 @@ class History(object):
         return "{id} {verb} at {time}".format(
             id=self.id,
             verb=("Started" if self.is_start else "Stopped"),
-            time=self.get_time_display())
+            time=self.get_time_display(),
+        )
 
     def __repr__(self):
         return str(self)
 
     def __lt__(self, other):
-        return ((self.taskid, self.time, not self.is_start) <
-                (other.taskid, other.time, not other.is_start))
+        return (self.taskid, self.time, not self.is_start) < (
+            other.taskid,
+            other.time,
+            not other.is_start,
+        )
 
     def __eq__(self, other):
         return self.id == other.id

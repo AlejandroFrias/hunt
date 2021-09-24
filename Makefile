@@ -4,17 +4,8 @@
 help:
 	@echo "Try 'make install' or 'make develop'"
 
-.PHONY: setup
-setup: clean
-	mkdir ~/.hunt
-	python3 hunt/setup_database.py
-
-.PHONY: install
-install: setup
-	python3 setup.py install
-
 .PHONY: develop
-develop: setup
+develop:
 	python3 setup.py develop
 
 .PHONY: clean

@@ -36,7 +36,6 @@ setup(
     install_requires=[
         'rich',
         'docopt',
-        'tabulate',
         'parsimonious',
     ],
 )

@@ -1,2 +1,0 @@
-CREATE TABLE tasks(id INTEGER PRIMARY KEY, name TEXT, estimate INTEGER, description TEXT, status TEXT, last_modified INTEGER)
-CREATE TABLE history(id INTEGER PRIMARY KEY, taskid INTEGER, is_start BOOLEAN, time INTEGER)

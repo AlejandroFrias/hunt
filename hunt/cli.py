@@ -1,12 +1,16 @@
+import shutil
 import sys
+import os
 import tempfile
 from collections import defaultdict
 from subprocess import call
 from contextlib import redirect_stdout
 from io import StringIO
 
+import sqlite3
+from rich import box
 from rich.console import Console
-from tabulate import tabulate
+from rich.table import Table
 
 from hunt import settings
 from .cli_dispatcher import Dispatcher
@@ -21,8 +25,8 @@ from .hunt import History
 from .hunt import Hunt
 from .utils import calc_progress
 from .utils import display_progress
+from .utils import needs_init
 from .utils import parse_task
-
 
 class Command:
     """
@@ -37,6 +41,7 @@ class Command:
         -s, --silent        Silently run without output (useful for scripts)
 
     Commands:
+        init                Initialize database
         ls                  List tasks
         show                Display task
         create              Create task
@@ -48,6 +53,28 @@ class Command:
         edit                Edit a task
         rm                  Remove task
     """
+
+    def init(self, options, console):
+        """Initialize hunt database
+
+
+        Usage:
+            init
+        """
+        # check if db and hunt dir exist already exists
+        if not needs_init():
+            prompt = f"Are you sure you want to re-initialize and lose all tracking info? [yN]"
+            user_sure = input(prompt).lower() == "y"
+            if not user_sure:
+                console.print("Aborting re-initialization")
+                return
+            shutil.rmtree(settings.HUNT_DIR)
+        os.mkdir(settings.HUNT_DIR)
+        conn = sqlite3.connect(settings.DATABASE)
+        conn.execute("CREATE TABLE tasks(id INTEGER PRIMARY KEY, name TEXT, estimate INTEGER, description TEXT, status TEXT, last_modified INTEGER)")
+        conn.execute("CREATE TABLE history(id INTEGER PRIMARY KEY, taskid INTEGER, is_start BOOLEAN, time INTEGER)")
+        conn.commit()
+        conn.close()
 
     # flake8: noqa
     def ls(self, options, console):
@@ -77,6 +104,8 @@ class Command:
             statuses.update([CURRENT, IN_PROGRESS])
         if options.get("--current"):
             statuses.add(CURRENT)
+        if options.get("--in-progress"):
+            statuses.add(IN_PROGRESS)
         if options.get("--todo"):
             statuses.add(TODO)
         if options.get("--finished"):
@@ -100,40 +129,32 @@ class Command:
             taskid2progress[taskid] = calc_progress(task_history)
 
         # Pretty diplay in a table with colors
-        display_rows = []
-        current_rows = []
-        in_progress_rows = []
+        table = Table(
+            "ID",
+            "NAME",
+            "ESTIMATE",
+            "PROGRESS",
+            "STATUS",
+            box=box.MINIMAL_HEAVY_HEAD,
+        )
         for rowid, task in enumerate(tasks):
             seconds = taskid2progress[task.id]
             minutes, seconds = divmod(seconds, 60)
             hours, minutes = divmod(minutes, 60)
-            display_rows.append(
-                (
-                    task.id,
-                    task.name,
-                    task.estimate_display,
-                    display_progress(taskid2progress[task.id]),
-                    task.status,
-                    task.last_modified_display,
-                )
+            row = (
+                str(task.id),
+                task.name,
+                task.estimate_display,
+                display_progress(taskid2progress[task.id]),
+                task.status,
             )
+            style = None
             if task.status == CURRENT:
-                current_rows.append(rowid)
-            if task.status == IN_PROGRESS:
-                in_progress_rows.append(rowid)
-
-        table_rows = tabulate(
-            display_rows, headers=["ID", "NAME", "ESTIMATE", "PROGRESS", "STATUS", "LAST MODIFIED"]
-        ).split("\n")
-
-        for rowid in current_rows:
-            table_rows[rowid + 2] = "[green]" + table_rows[rowid + 2] + "[/green]"
-
-        for rowid in in_progress_rows:
-            table_rows[rowid + 2] = "[yellow]" + table_rows[rowid + 2] + "[/yellow]"
-
-        for row in table_rows:
-            console.print(row)
+                style = "green"
+            elif task.status == IN_PROGRESS:
+                style = "yellow"
+            table.add_row(*row, style=style)
+        console.print(table)
 
     def show(self, options, console):
         """
@@ -343,9 +364,9 @@ def main():
     options, handler, command_options = dispatcher.parse(sys.argv[1:])
 
     if command_options["--silent"]:
-        console=Console(file=StringIO())
+        console = Console(file=StringIO())
     else:
-        console=Console()
+        console = Console()
 
     try:
         handler(options, console=console)

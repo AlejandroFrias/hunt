@@ -265,7 +265,7 @@ class Command:
             task = hunt.stop_current_task()
 
         hunt.finish_task(task.id)
-        console.print("Finished [yellow]{task.name}[/yellow]!")
+        console.print(f"Finished [yellow]{task.name}[/yellow]!")
 
     def estimate(self, options, console):
         """
